@@ -15,7 +15,7 @@ When you type `godmode lite` before any task, Claude Code activates:
 
 ```bash
 mkdir -p ~/.claude/skills/godmode-lite
-curl -o ~/.claude/skills/godmode-lite/SKILL.md https://raw.githubusercontent.com/Lotron-Electrical/godmode-lite/main/SKILL.md
+curl -o ~/.claude/skills/godmode-lite/SKILL.md https://raw.githubusercontent.com/Getgodmode/godmode-lite/main/SKILL.md
 ```
 
 Or manually: download `SKILL.md` and place it in `~/.claude/skills/godmode-lite/`.
