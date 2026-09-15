@@ -4,22 +4,23 @@ Godmode Lite is a free Claude Code skill. It wraps any task and drives Claude th
 
 ## Install
 
-```bash
-mkdir -p ~/.claude/skills/godmode-lite
-cd ~/.claude/skills/godmode-lite
-curl -O https://raw.githubusercontent.com/Getgodmode/godmode-lite/main/SKILL.md
-curl -O https://raw.githubusercontent.com/Getgodmode/godmode-lite/main/LICENSE
-mkdir -p runner/bin runner/src
-curl -o runner/package.json https://raw.githubusercontent.com/Getgodmode/godmode-lite/main/runner/package.json
-curl -o runner/bin/lite https://raw.githubusercontent.com/Getgodmode/godmode-lite/main/runner/bin/lite
-chmod +x runner/bin/lite
-```
-
-Or clone the whole repo into `~/.claude/skills/godmode-lite/`:
+Clone the repo into `~/.claude/skills/godmode-lite/`:
 
 ```bash
 git clone https://github.com/Getgodmode/godmode-lite.git ~/.claude/skills/godmode-lite
+chmod +x ~/.claude/skills/godmode-lite/runner/bin/lite
 ```
+
+No `git`? Download and extract the tarball instead:
+
+```bash
+mkdir -p ~/.claude/skills/godmode-lite
+curl -sL https://github.com/Getgodmode/godmode-lite/archive/refs/heads/main.tar.gz \
+  | tar -xz --strip-components=1 -C ~/.claude/skills/godmode-lite
+chmod +x ~/.claude/skills/godmode-lite/runner/bin/lite
+```
+
+`runner/bin/lite` requires the full `runner/src/` tree, so curling individual files won't work — always pull the whole repo.
 
 ## Usage
 
