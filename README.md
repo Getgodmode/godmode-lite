@@ -46,7 +46,7 @@ Claude then runs the `runner/bin/lite` CLI through each layer in order (`start` 
 
 The full [Godmode](https://getgodmode.dev) protocol adds security hardening, alternative-approach exploration, auto-documentation, and ripple checking, plus higher tiers with smarter planning, a self-improving evolution engine, and an execute-assess-fix loop that won't stop until every dimension passes.
 
-Need something built to spec instead of a general-purpose skill? See the [custom build](https://getgodmode.dev/custom-build.html) offer.
+Need something built to spec instead of a general-purpose skill? See the [custom build](https://getgodmode.dev/custom-build.html?utm_source=directory&utm_medium=listing&utm_campaign=custom-build) offer.
 
 ## License
 
