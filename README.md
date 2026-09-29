@@ -2,6 +2,13 @@
 
 Godmode Lite is a free Claude Code skill. It wraps any task and drives Claude through 4 execution layers instead of a single unstructured attempt: deep context loading, complete execution, exhaustive testing, and polish. A small zero-dependency Node CLI under `runner/` gives each layer a deterministic pass/fail gate, so Claude can't skip a step or call something done before it verifiably is.
 
+## Supported hosts
+
+- Claude Code, OpenAI Codex, Cursor
+- Windows, macOS, Linux (Node 18+)
+- Run state lives in a per-user folder, never inside the skill folder. In a sandboxed host that only allows writes in the project (Codex), it goes to `.evo/godmode-lite/` in the project.
+- If the host has no question tool, the skill asks in plain text in the chat.
+
 ## Install
 
 Clone the repo into `~/.claude/skills/godmode-lite/`:
