@@ -12,6 +12,6 @@
   },
   "scripts": {
     "smoke": "node bin/lite --version",
-    "test": "node --test runner/test/state-dir.test.js"
+    "test": "node --test test/state-dir.test.js"
   }
 }

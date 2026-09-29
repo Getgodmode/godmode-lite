@@ -58,7 +58,7 @@ Every command emits a single JSON line:
 
 ### State file
 
-Run state lives at `~/.claude/skills/godmode-lite/runs/<run-id>/state.json`. Active runs are tracked in `~/.claude/skills/godmode-lite/.active-run.json` as a map of project directory → run id, so `discover`, `check`, `test`, `polish`, `end`, and `status` do not need a run id passed in — each command binds to the run for the directory it's invoked from (or the path it's given), and concurrent runs in different projects don't interfere. Old run folders are pruned automatically (newest 20 kept).
+Run state lives in a per-user folder, never inside the skill folder: `runs/<run-id>/state.json` under `%LOCALAPPDATA%/godmode-lite` (Windows), `~/Library/Application Support/godmode-lite` (macOS) or `~/.godmode-lite` (elsewhere); `GODMODE_LITE_STATE_DIR` overrides it, and an unwritable folder falls back to the system temp folder. Active runs are tracked in `.active-run.json` in that same folder as a map of project directory → run id, so `discover`, `check`, `test`, `polish`, `end`, and `status` do not need a run id passed in — each command binds to the run for the directory it's invoked from (or the path it's given), and concurrent runs in different projects don't interfere. Old run folders are pruned automatically (newest 20 kept).
 
 ## Layer reference
 

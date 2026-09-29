@@ -1,6 +1,6 @@
 'use strict';
 
-// Run with: node --test runner/test/
+// Run with: node --test runner/test/state-dir.test.js (or `npm test` in runner/)
 // Each test uses a throwaway HOME so nothing touches the real skill folder.
 
 const test = require('node:test');
@@ -109,7 +109,7 @@ test('legacy runs in the old skill-folder location are still readable and never 
   };
   const legacyFile = path.join(skill, 'runs', id, 'state.json');
   fs.writeFileSync(legacyFile, JSON.stringify(legacyState));
-  fs.writeFileSync(path.join(skill, '.active-run.json'), JSON.stringify({ runs: { [path.join(home, 'proj').toLowerCase()]: id } }));
+  fs.writeFileSync(path.join(skill, '.active-run.json'), JSON.stringify({ runs: { [process.platform === 'win32' ? path.join(home, 'proj').toLowerCase() : fs.realpathSync(path.join(home, 'proj'))]: id } }));
   const before = fs.readFileSync(legacyFile, 'utf8');
   const st = run(home, ['status']);
   assert.strictEqual(st.json.run_id, id, st.stdout + st.stderr);

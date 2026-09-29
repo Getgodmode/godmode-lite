@@ -135,10 +135,13 @@ function readActiveMap() {
   const map = {};
   const legacy = parseActiveFile(LEGACY_ACTIVE_FILE);
   for (const dir of Object.keys(legacy)) {
+    // Keep a legacy entry only while its run still exists and has not ended.
     try {
       const s = JSON.parse(fs.readFileSync(stateFile(legacy[dir]), 'utf8'));
       if (s && typeof s.state === 'string' && s.state.startsWith('ended')) continue;
-    } catch (_e) {}
+    } catch (_e) {
+      continue;
+    }
     map[dir] = legacy[dir];
   }
   return Object.assign(map, parseActiveFile(activeFile()));
