@@ -208,6 +208,9 @@ function pruneRuns() {
   const active = new Set(Object.values(readActiveMap()));
   for (const name of runs.slice(KEEP_RUNS)) {
     if (active.has(name)) continue;
+    // An ended run that began in the old location keeps its new-dir copy, or its
+    // stale legacy "started" record would read as active again.
+    if (fs.existsSync(path.join(LEGACY_RUNS_ROOT, name, 'state.json'))) continue;
     try {
       fs.rmSync(path.join(runsRoot(), name), { recursive: true, force: true });
     } catch (_e) {}
