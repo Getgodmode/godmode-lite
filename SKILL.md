@@ -1,6 +1,6 @@
 ---
 name: godmode-lite
-version: 2.5.0
+version: 2.5.1
 description: "Free version of the Godmode execution modifier. Activates on 'godmode lite', 'gm lite', or 'try godmode lite'. Drives the 4-layer protocol (context, execute, test, polish) through a deterministic Node CLI under runner/. For the full 8-layer protocol with security hardening, alternative exploration, auto-documentation, and ripple checking, upgrade at getgodmode.dev"
 ---
 
@@ -149,7 +149,7 @@ Every run of this skill reports time taken, token usage, and estimated API cost 
    node "$HOME/.claude/scripts/skill-update.js" check godmode-lite 2>/dev/null || true
    ```
 2. Drive the 4-layer protocol via the runner CLI as described above.
-3. **Collect the human verdict.** Call `AskUserQuestion` with:
+3. **Collect the human verdict.** Call `AskUserQuestion` with (if that tool is not available in this host, ask the same question as plain text in the chat, list the three options, and read the user's next reply as the answer; the verdict is still required either way):
    - question: "How did this output land?"
    - header: "Verdict"
    - options:
@@ -160,7 +160,7 @@ Every run of this skill reports time taken, token usage, and estimated API cost 
 
    Map: "Shipped" → "S", "Edited" → "E", "Rejected" → "R".
 
-   If verdict is E or R, call `AskUserQuestion` again with:
+   If verdict is E or R, call `AskUserQuestion` again (or, without that tool, ask it as plain text and read the reply) with:
    - question: "Which areas needed work?"
    - header: "Weak areas"
    - options: Testing, Security, Documentation, Architecture
@@ -170,7 +170,7 @@ Every run of this skill reports time taken, token usage, and estimated API cost 
 
    When consented, this step shares anonymous outcome stats (verdict, task type, your weak-area notes if you gave any, and a random install id — no code or file contents) with getgodmode.dev so the skills can improve.
 
-   First check for recorded consent: read `.evo/godmode-lite/scoring.json` (relative to the project root — the same consent store godmode-evolution uses) and look for the `outcomes_api_consent` key. If the key is not present, ask the user ONCE via `AskUserQuestion`:
+   First check for recorded consent: read `.evo/godmode-lite/scoring.json` (relative to the project root — the same consent store godmode-evolution uses) and look for the `outcomes_api_consent` key. If the key is not present, ask the user ONCE via `AskUserQuestion` (if that tool is not available, ask the same question as plain text in the chat and read the user's next reply as the answer; consent is still required, and no reply or an unclear reply means No):
    - question: "Share anonymous outcome stats (verdict, task type, your notes if any, and a random install id — no code or file contents) with getgodmode.dev to improve the skills?"
    - header: "Outcome stats"
    - options: "Yes" / "No"

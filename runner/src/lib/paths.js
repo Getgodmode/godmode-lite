@@ -5,25 +5,92 @@ const path = require('path');
 const os = require('os');
 
 const HOME = os.homedir();
+// Where the skill is installed. Read-only from the runner's point of view:
+// hosts and Windows can protect this folder, so no state is ever written here.
 const SKILL_ROOT = path.join(HOME, '.claude', 'skills', 'godmode-lite');
-const RUNS_ROOT = path.join(SKILL_ROOT, 'runs');
-const ACTIVE_FILE = path.join(SKILL_ROOT, '.active-run.json');
+const LEGACY_RUNS_ROOT = path.join(SKILL_ROOT, 'runs');
+const LEGACY_ACTIVE_FILE = path.join(SKILL_ROOT, '.active-run.json');
 const KEEP_RUNS = 20;
 
 function ensureDir(p) {
   if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
 }
 
+function defaultStateDir() {
+  if (process.platform === 'win32') {
+    const base = process.env.LOCALAPPDATA || path.join(HOME, 'AppData', 'Local');
+    return path.join(base, 'godmode-lite');
+  }
+  if (process.platform === 'darwin') {
+    return path.join(HOME, 'Library', 'Application Support', 'godmode-lite');
+  }
+  return path.join(HOME, '.godmode-lite');
+}
+
+function isWritableDir(dir) {
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+    const probe = path.join(dir, '.write-probe-' + process.pid);
+    fs.writeFileSync(probe, '');
+    fs.unlinkSync(probe);
+    return true;
+  } catch (_e) {
+    return false;
+  }
+}
+
+// Per-user state dir, resolved once per process: GODMODE_LITE_STATE_DIR, then
+// the platform default, then os.tmpdir(). Falling back prints one plain line
+// on stderr (stdout carries the JSON envelope).
+let cachedRoot = null;
+function stateRoot() {
+  if (cachedRoot) return cachedRoot;
+  const wanted = process.env.GODMODE_LITE_STATE_DIR
+    ? path.resolve(process.env.GODMODE_LITE_STATE_DIR)
+    : defaultStateDir();
+  const candidates = [wanted];
+  const dflt = defaultStateDir();
+  if (dflt !== wanted) candidates.push(dflt);
+  candidates.push(path.join(os.tmpdir(), 'godmode-lite'));
+  for (let i = 0; i < candidates.length; i++) {
+    if (isWritableDir(candidates[i])) {
+      cachedRoot = candidates[i];
+      if (i > 0) {
+        process.stderr.write('godmode-lite: state saved in ' + cachedRoot + ' (' + wanted + ' is not writable)' + String.fromCharCode(10));
+      }
+      return cachedRoot;
+    }
+  }
+  throw new Error('no writable folder for godmode-lite state (tried ' + candidates.join(', ') + ')');
+}
+
+function runsRoot() {
+  return path.join(stateRoot(), 'runs');
+}
+
+function activeFile() {
+  return path.join(stateRoot(), '.active-run.json');
+}
+
 function ensureRunsRoot() {
-  ensureDir(RUNS_ROOT);
+  ensureDir(runsRoot());
 }
 
+// Where new writes go.
 function runDir(runId) {
-  return path.join(RUNS_ROOT, runId);
+  return path.join(runsRoot(), runId);
 }
 
-function stateFile(runId) {
+function writeStateFile(runId) {
   return path.join(runDir(runId), 'state.json');
+}
+
+// Where a read looks: the new dir first, then the legacy skill-folder copy.
+function stateFile(runId) {
+  const p = writeStateFile(runId);
+  if (fs.existsSync(p)) return p;
+  const legacy = path.join(LEGACY_RUNS_ROOT, runId, 'state.json');
+  return fs.existsSync(legacy) ? legacy : p;
 }
 
 function reportFile(runId) {
@@ -43,12 +110,10 @@ function dirKey(p) {
   return process.platform === 'win32' ? r.toLowerCase() : r;
 }
 
-// .active-run.json maps project directory -> run_id so concurrent runs in
-// different projects do not clobber each other.
-function readActiveMap() {
-  if (!fs.existsSync(ACTIVE_FILE)) return {};
+function parseActiveFile(file) {
+  if (!fs.existsSync(file)) return {};
   try {
-    const j = JSON.parse(fs.readFileSync(ACTIVE_FILE, 'utf8'));
+    const j = JSON.parse(fs.readFileSync(file, 'utf8'));
     if (j && j.runs && typeof j.runs === 'object') return j.runs;
     // Legacy single-run shape {"run_id":"..."}: key it by the run's stored cwd.
     if (j && typeof j.run_id === 'string') {
@@ -63,15 +128,32 @@ function readActiveMap() {
   }
 }
 
+// .active-run.json maps project directory -> run_id so concurrent runs in
+// different projects do not clobber each other. Entries from the old
+// skill-folder file are still honoured until their run ends; the new file wins.
+function readActiveMap() {
+  const map = {};
+  const legacy = parseActiveFile(LEGACY_ACTIVE_FILE);
+  for (const dir of Object.keys(legacy)) {
+    try {
+      const s = JSON.parse(fs.readFileSync(stateFile(legacy[dir]), 'utf8'));
+      if (s && typeof s.state === 'string' && s.state.startsWith('ended')) continue;
+    } catch (_e) {}
+    map[dir] = legacy[dir];
+  }
+  return Object.assign(map, parseActiveFile(activeFile()));
+}
+
 function writeActiveMap(map) {
-  ensureDir(SKILL_ROOT);
+  ensureDir(stateRoot());
+  const file = activeFile();
   if (Object.keys(map).length === 0) {
     try {
-      if (fs.existsSync(ACTIVE_FILE)) fs.unlinkSync(ACTIVE_FILE);
+      if (fs.existsSync(file)) fs.unlinkSync(file);
     } catch (_e) {}
     return;
   }
-  fs.writeFileSync(ACTIVE_FILE, JSON.stringify({ runs: map }, null, 2));
+  fs.writeFileSync(file, JSON.stringify({ runs: map }, null, 2));
 }
 
 // Resolve the active run for a directory: exact match first, then the nearest
@@ -114,7 +196,7 @@ function clearActiveRunId(runId) {
 function pruneRuns() {
   let entries;
   try {
-    entries = fs.readdirSync(RUNS_ROOT);
+    entries = fs.readdirSync(runsRoot());
   } catch (_e) {
     return;
   }
@@ -124,7 +206,7 @@ function pruneRuns() {
   for (const name of runs.slice(KEEP_RUNS)) {
     if (active.has(name)) continue;
     try {
-      fs.rmSync(path.join(RUNS_ROOT, name), { recursive: true, force: true });
+      fs.rmSync(path.join(runsRoot(), name), { recursive: true, force: true });
     } catch (_e) {}
   }
 }
@@ -138,8 +220,9 @@ function newRunId() {
 module.exports = {
   HOME,
   SKILL_ROOT,
-  RUNS_ROOT,
-  ACTIVE_FILE,
+  stateRoot,
+  runsRoot,
+  writeStateFile,
   ensureDir,
   ensureRunsRoot,
   runDir,
