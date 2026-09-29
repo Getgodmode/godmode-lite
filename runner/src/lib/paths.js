@@ -39,9 +39,25 @@ function isWritableDir(dir) {
   }
 }
 
-// Per-user state dir, resolved once per process: GODMODE_LITE_STATE_DIR, then
-// the platform default, then os.tmpdir(). Falling back prints one plain line
-// on stderr (stdout carries the JSON envelope).
+// The project's own folder, used when the per-user dirs are refused. Sandboxed
+// hosts (Codex) only allow writes inside the workspace, and the workspace is the
+// one place always writable there. Nearest ancestor that already holds
+// .evo/godmode-lite (so later commands from a subfolder find the same state),
+// else the nearest git root, else the current folder.
+function workspaceStateDir() {
+  const start = path.resolve(process.cwd());
+  let gitRoot = null;
+  for (let d = start; ; d = path.dirname(d)) {
+    if (fs.existsSync(path.join(d, '.evo', 'godmode-lite'))) return path.join(d, '.evo', 'godmode-lite');
+    if (!gitRoot && fs.existsSync(path.join(d, '.git'))) gitRoot = d;
+    if (path.dirname(d) === d) break;
+  }
+  return path.join(gitRoot || start, '.evo', 'godmode-lite');
+}
+
+// State dir, resolved once per process: GODMODE_LITE_STATE_DIR, then the
+// platform default, then <project>/.evo/godmode-lite, then os.tmpdir(). Falling
+// back prints one plain line on stderr (stdout carries the JSON envelope).
 let cachedRoot = null;
 function stateRoot() {
   if (cachedRoot) return cachedRoot;
@@ -51,6 +67,7 @@ function stateRoot() {
   const candidates = [wanted];
   const dflt = defaultStateDir();
   if (dflt !== wanted) candidates.push(dflt);
+  candidates.push(workspaceStateDir());
   candidates.push(path.join(os.tmpdir(), 'godmode-lite'));
   for (let i = 0; i < candidates.length; i++) {
     if (isWritableDir(candidates[i])) {

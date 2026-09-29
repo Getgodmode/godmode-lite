@@ -82,13 +82,15 @@ test('GODMODE_LITE_STATE_DIR overrides the location', () => {
   assert.ok(fs.existsSync(path.join(dir, '.active-run.json')));
 });
 
-test('unwritable state dir falls back to tmpdir and says so on stderr', () => {
+test('everything else unwritable falls back to tmpdir and says so on stderr', () => {
   const home = mkHome();
   const blockedFile = path.join(home, 'blocker');
   fs.writeFileSync(blockedFile, 'x');
   // Block the platform default too, so only tmpdir is left.
   const dflt = process.platform === 'win32' ? 'AppData' : process.platform === 'darwin' ? 'Library' : '.godmode-lite';
   fs.writeFileSync(path.join(home, dflt), 'x');
+  // ...and the project's .evo folder, so only tmpdir is left.
+  fs.writeFileSync(path.join(home, 'proj', '.evo'), 'x');
   const s = run(home, ['start', 'x'], { GODMODE_LITE_STATE_DIR: path.join(blockedFile, 'sub') });
   assert.strictEqual(s.json && s.json.state, 'started', s.stdout + s.stderr);
   const tmpState = path.join(home, 'tmp', 'godmode-lite', 'runs', s.json.run_id, 'state.json');
@@ -137,5 +139,55 @@ test('read-only skill folder (chmod 555) does not stop a run', { skip: !canChmod
     assert.match(run(home, ['end']).json.state, /^ended/);
   } finally {
     fs.chmodSync(skill, 0o755);
+  }
+});
+
+// Codex-style sandbox: nothing outside the workspace is writable, the project
+// folder is. State must land in <project>/.evo/godmode-lite/.
+function assertWorkspaceState(home, s) {
+  assert.strictEqual(s.json && s.json.state, 'started', s.stdout + s.stderr);
+  const ws = path.join(home, 'proj', '.evo', 'godmode-lite');
+  assert.ok(fs.existsSync(path.join(ws, 'runs', s.json.run_id, 'state.json')), 'state in workspace');
+  assert.match(s.stderr, /godmode-lite: state saved in .*\.evo/);
+  assert.strictEqual(s.stderr.trim().split('\n').length, 1, 'exactly one plain line');
+  return ws;
+}
+
+test('sandbox simulation: home unwritable, workspace writable -> state in <project>/.evo/godmode-lite', () => {
+  const home = mkHome();
+  blockSkillRoot(home);
+  const dflt = process.platform === 'win32' ? 'AppData' : process.platform === 'darwin' ? 'Library' : '.godmode-lite';
+  fs.writeFileSync(path.join(home, dflt), 'x');
+  const s = run(home, ['start', 'x']);
+  assertWorkspaceState(home, s);
+  // Later commands, even from a subfolder, find the same run.
+  fs.mkdirSync(path.join(home, 'proj', 'sub'));
+  const env = { ...process.env, HOME: home, USERPROFILE: home, LOCALAPPDATA: path.join(home, 'AppData', 'Local') };
+  const r = spawnSync(process.execPath, [LITE, 'end'], { cwd: path.join(home, 'proj', 'sub'), env, encoding: 'utf8' });
+  assert.match(JSON.parse(r.stdout.trim().split('\n').pop()).state, /^ended/, r.stdout + r.stderr);
+});
+
+// Real Windows ACL deny on the whole fake HOME (what a sandbox does), project
+// folder outside it stays writable.
+test('real Windows ACL deny on HOME: run still works', { skip: process.platform !== 'win32' }, () => {
+  const home = mkHome();
+  const proj = fs.mkdtempSync(path.join(os.tmpdir(), 'gml-proj-'));
+  const who = process.env.USERNAME;
+  const acl = (args) => spawnSync('icacls', [home, ...args], { encoding: 'utf8' });
+  const denied = acl(['/deny', who + ':(OI)(CI)(WD,AD,DC)']);
+  try {
+    assert.strictEqual(denied.status, 0, denied.stdout + denied.stderr);
+    const env = { ...process.env, HOME: home, USERPROFILE: home, LOCALAPPDATA: path.join(home, 'AppData', 'Local') };
+    delete env.GODMODE_LITE_STATE_DIR;
+    const opts = { cwd: proj, env, encoding: 'utf8' };
+    const s = spawnSync(process.execPath, [LITE, 'start', 'x'], opts);
+    const j = JSON.parse(s.stdout.trim().split('\n').pop());
+    assert.strictEqual(j.state, 'started', s.stdout + s.stderr);
+    assert.ok(fs.existsSync(path.join(proj, '.evo', 'godmode-lite', 'runs', j.run_id, 'state.json')));
+    assert.match(s.stderr, /state saved in/);
+    const e = spawnSync(process.execPath, [LITE, 'end'], opts);
+    assert.match(JSON.parse(e.stdout.trim().split('\n').pop()).state, /^ended/);
+  } finally {
+    acl(['/remove:d', who]);
   }
 });

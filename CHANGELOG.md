@@ -8,7 +8,7 @@ All notable changes to Godmode Lite are documented here.
   the skill folder. Run state now lives in a per-user folder
   (`%LOCALAPPDATA%\godmode-lite` on Windows, `~/Library/Application Support/godmode-lite`
   on macOS, `~/.godmode-lite` elsewhere; override with `GODMODE_LITE_STATE_DIR`),
-  falling back to the system temp folder with a one-line notice. Nothing is
+  falling back to `<project>/.evo/godmode-lite` (the only place a sandboxed host such as Codex allows writes) and then the system temp folder, with a one-line notice. Nothing is
   written inside the skill folder. Runs saved in the old location are still read.
 - SKILL.md: the verdict and consent steps now fall back to a plain-text
   question in the chat when the host has no `AskUserQuestion` tool.

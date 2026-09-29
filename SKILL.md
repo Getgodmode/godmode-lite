@@ -20,11 +20,20 @@ The user's message contains a trigger plus a task:
 - "gm lite: fix the auth bug" → task is "fix the auth bug"
 - "try godmode lite" (no task) → audit the current project
 
+## Hosts
+
+Works in Claude Code, OpenAI Codex and Cursor, on Windows, macOS and Linux. It needs only Node 18+.
+
+- Run state is written outside the skill folder. If the host blocks that too (Codex allows writes only inside the project), it goes to `<project>/.evo/godmode-lite/` and the runner prints one line saying so.
+- Where the steps below say `AskUserQuestion` and the host has no such tool, ask the same question as plain text in the chat and read the user's next reply as the answer.
+
 ## Execution Sequence
 
 Run the CLI in order. Use the `next` field in each envelope as the source of truth for what to do next.
 
 ```bash
+# Use the runner next to this SKILL.md. Claude Code default shown; Codex, Cursor and other hosts
+# install skills elsewhere, so point LITE at wherever this folder actually lives.
 LITE="$HOME/.claude/skills/godmode-lite/runner/bin/lite"
 
 node "$LITE" start "<task>"      # Layer 1 prep, prints context-load instructions
