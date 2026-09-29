@@ -64,9 +64,11 @@ States: `started`, `discovered`, `checked_clean`, `checked_dirty`, `tested_pass`
 
 ## State
 
-- Run state: `~/.claude/skills/godmode-lite/runs/<run-id>/state.json`
-- Active runs: `~/.claude/skills/godmode-lite/.active-run.json` — a map of project directory → run id, so concurrent runs in different projects don't clobber each other. Commands resolve their run by cwd (exact match, then nearest ancestor, then single-entry fallback); the legacy single-run `{"run_id":...}` shape is migrated on read.
-- Run report: `~/.claude/skills/godmode-lite/runs/<run-id>/report.md`
+- State folder: `%LOCALAPPDATA%\godmode-lite` on Windows, `~/Library/Application Support/godmode-lite` on macOS, `~/.godmode-lite` elsewhere. Set `GODMODE_LITE_STATE_DIR` to change it. If that folder cannot be written (a sandboxed host such as Codex), the runner tries `<project>/.evo/godmode-lite`, then `<tmpdir>/godmode-lite`, and prints one line to stderr saying where state went. Nothing is ever written inside the skill folder, which hosts may protect.
+- Run state: `<state folder>/runs/<run-id>/state.json`
+- Active runs: `<state folder>/.active-run.json` — a map of project directory → run id, so concurrent runs in different projects don't clobber each other. Commands resolve their run by cwd (exact match, then nearest ancestor, then single-entry fallback); the legacy single-run `{"run_id":...}` shape is migrated on read.
+- Run report: `<state folder>/runs/<run-id>/report.md`
+- Older runs under `~/.claude/skills/godmode-lite/runs/` are still read, never written.
 
 State is written atomically (tmp file plus rename). Commands after `start` resolve the active run automatically. Old run folders are pruned on `start` (newest 20 kept, active runs never pruned).
 

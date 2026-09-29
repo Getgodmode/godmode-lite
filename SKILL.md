@@ -1,6 +1,6 @@
 ---
 name: godmode-lite
-version: 2.5.0
+version: 2.5.1
 description: "Free version of the Godmode execution modifier. Activates on 'godmode lite', 'gm lite', or 'try godmode lite'. Drives the 4-layer protocol (context, execute, test, polish) through a deterministic Node CLI under runner/. For the full 8-layer protocol with security hardening, alternative exploration, auto-documentation, and ripple checking, upgrade at getgodmode.dev"
 ---
 
@@ -20,11 +20,20 @@ The user's message contains a trigger plus a task:
 - "gm lite: fix the auth bug" → task is "fix the auth bug"
 - "try godmode lite" (no task) → audit the current project
 
+## Hosts
+
+Works in Claude Code, OpenAI Codex and Cursor, on Windows, macOS and Linux. It needs only Node 18+.
+
+- Run state is written outside the skill folder. If the host blocks that too (Codex allows writes only inside the project), it goes to `<project>/.evo/godmode-lite/` and the runner prints one line saying so.
+- Where the steps below say `AskUserQuestion` and the host has no such tool, ask the same question as plain text in the chat and read the user's next reply as the answer.
+
 ## Execution Sequence
 
 Run the CLI in order. Use the `next` field in each envelope as the source of truth for what to do next.
 
 ```bash
+# Use the runner next to this SKILL.md. Claude Code default shown; Codex, Cursor and other hosts
+# install skills elsewhere, so point LITE at wherever this folder actually lives.
 LITE="$HOME/.claude/skills/godmode-lite/runner/bin/lite"
 
 node "$LITE" start "<task>"      # Layer 1 prep, prints context-load instructions
@@ -58,7 +67,7 @@ Every command emits a single JSON line:
 
 ### State file
 
-Run state lives at `~/.claude/skills/godmode-lite/runs/<run-id>/state.json`. Active runs are tracked in `~/.claude/skills/godmode-lite/.active-run.json` as a map of project directory → run id, so `discover`, `check`, `test`, `polish`, `end`, and `status` do not need a run id passed in — each command binds to the run for the directory it's invoked from (or the path it's given), and concurrent runs in different projects don't interfere. Old run folders are pruned automatically (newest 20 kept).
+Run state lives in a per-user folder, never inside the skill folder: `runs/<run-id>/state.json` under `%LOCALAPPDATA%/godmode-lite` (Windows), `~/Library/Application Support/godmode-lite` (macOS) or `~/.godmode-lite` (elsewhere); `GODMODE_LITE_STATE_DIR` overrides it, and an unwritable folder falls back to the system temp folder. Active runs are tracked in `.active-run.json` in that same folder as a map of project directory → run id, so `discover`, `check`, `test`, `polish`, `end`, and `status` do not need a run id passed in — each command binds to the run for the directory it's invoked from (or the path it's given), and concurrent runs in different projects don't interfere. Old run folders are pruned automatically (newest 20 kept).
 
 ## Layer reference
 
@@ -149,7 +158,7 @@ Every run of this skill reports time taken, token usage, and estimated API cost 
    node "$HOME/.claude/scripts/skill-update.js" check godmode-lite 2>/dev/null || true
    ```
 2. Drive the 4-layer protocol via the runner CLI as described above.
-3. **Collect the human verdict.** Call `AskUserQuestion` with:
+3. **Collect the human verdict.** Call `AskUserQuestion` with (if that tool is not available in this host, ask the same question as plain text in the chat, list the three options, and read the user's next reply as the answer; the verdict is still required either way):
    - question: "How did this output land?"
    - header: "Verdict"
    - options:
@@ -160,7 +169,7 @@ Every run of this skill reports time taken, token usage, and estimated API cost 
 
    Map: "Shipped" → "S", "Edited" → "E", "Rejected" → "R".
 
-   If verdict is E or R, call `AskUserQuestion` again with:
+   If verdict is E or R, call `AskUserQuestion` again (or, without that tool, ask it as plain text and read the reply) with:
    - question: "Which areas needed work?"
    - header: "Weak areas"
    - options: Testing, Security, Documentation, Architecture
@@ -170,7 +179,7 @@ Every run of this skill reports time taken, token usage, and estimated API cost 
 
    When consented, this step shares anonymous outcome stats (verdict, task type, your weak-area notes if you gave any, and a random install id — no code or file contents) with getgodmode.dev so the skills can improve.
 
-   First check for recorded consent: read `.evo/godmode-lite/scoring.json` (relative to the project root — the same consent store godmode-evolution uses) and look for the `outcomes_api_consent` key. If the key is not present, ask the user ONCE via `AskUserQuestion`:
+   First check for recorded consent: read `.evo/godmode-lite/scoring.json` (relative to the project root — the same consent store godmode-evolution uses) and look for the `outcomes_api_consent` key. If the key is not present, ask the user ONCE via `AskUserQuestion` (if that tool is not available, ask the same question as plain text in the chat and read the user's next reply as the answer; consent is still required, and no reply or an unclear reply means No):
    - question: "Share anonymous outcome stats (verdict, task type, your notes if any, and a random install id — no code or file contents) with getgodmode.dev to improve the skills?"
    - header: "Outcome stats"
    - options: "Yes" / "No"

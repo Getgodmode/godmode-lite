@@ -8,6 +8,7 @@ const {
   ensureRunsRoot,
   runDir,
   stateFile,
+  writeStateFile,
   readActiveRunId,
   writeActiveRunId,
   clearActiveRunId,
@@ -43,7 +44,7 @@ function writeState(state) {
   if (!state || !state.run_id) throw new Error('writeState: state.run_id required');
   ensureRunsRoot();
   ensureDir(runDir(state.run_id));
-  const p = stateFile(state.run_id);
+  const p = writeStateFile(state.run_id);
   const tmp = p + '.tmp';
   fs.writeFileSync(tmp, JSON.stringify(state, null, 2));
   fs.renameSync(tmp, p);
