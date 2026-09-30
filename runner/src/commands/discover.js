@@ -40,7 +40,7 @@ module.exports = async function discoverCmd(args) {
     : '';
   const narrate =
     result.matched_files === 0
-      ? 'No keyword matches in ' + root + '. Read the task again, then list files manually with the Glob tool.' + truncNote
+      ? 'No keyword matches in ' + root + '. Read the task again, then list files manually (Glob tool in Claude Code, or `rg --files` / `git ls-files` in any shell).' + truncNote
       : 'Found ' + result.matched_files + ' candidate files (top ' + result.top.length + ' returned). Read them in full before writing.' + truncNote;
 
   return emit({

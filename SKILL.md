@@ -1,6 +1,6 @@
 ---
 name: godmode-lite
-version: 2.5.1
+version: 2.5.2
 description: "Free version of the Godmode execution modifier. Activates on 'godmode lite', 'gm lite', or 'try godmode lite'. Drives the 4-layer protocol (context, execute, test, polish) through a deterministic Node CLI under runner/. For the full 8-layer protocol with security hardening, alternative exploration, auto-documentation, and ripple checking, upgrade at getgodmode.dev"
 ---
 
@@ -26,6 +26,7 @@ Works in Claude Code, OpenAI Codex and Cursor, on Windows, macOS and Linux. It n
 
 - Run state is written outside the skill folder. If the host blocks that too (Codex allows writes only inside the project), it goes to `<project>/.evo/godmode-lite/` and the runner prints one line saying so.
 - Where the steps below say `AskUserQuestion` and the host has no such tool, ask the same question as plain text in the chat and read the user's next reply as the answer.
+- The snippets below are bash. In PowerShell (Codex on Windows), set the path with `$LITE = "<path>"`, drop `2>/dev/null || true`, and send the outcome POST with `curl.exe` (the plain `curl` alias is `Invoke-WebRequest`) or `Invoke-RestMethod`.
 
 ## Execution Sequence
 
@@ -67,7 +68,7 @@ Every command emits a single JSON line:
 
 ### State file
 
-Run state lives in a per-user folder, never inside the skill folder: `runs/<run-id>/state.json` under `%LOCALAPPDATA%/godmode-lite` (Windows), `~/Library/Application Support/godmode-lite` (macOS) or `~/.godmode-lite` (elsewhere); `GODMODE_LITE_STATE_DIR` overrides it, and an unwritable folder falls back to the system temp folder. Active runs are tracked in `.active-run.json` in that same folder as a map of project directory → run id, so `discover`, `check`, `test`, `polish`, `end`, and `status` do not need a run id passed in — each command binds to the run for the directory it's invoked from (or the path it's given), and concurrent runs in different projects don't interfere. Old run folders are pruned automatically (newest 20 kept).
+Run state lives in a per-user folder, never inside the skill folder: `runs/<run-id>/state.json` under `%LOCALAPPDATA%/godmode-lite` (Windows), `~/Library/Application Support/godmode-lite` (macOS) or `~/.godmode-lite` (elsewhere); `GODMODE_LITE_STATE_DIR` overrides it, and an unwritable folder falls back to `<project>/.evo/godmode-lite`, then the system temp folder. Active runs are tracked in `.active-run.json` in that same folder as a map of project directory → run id, so `discover`, `check`, `test`, `polish`, `end`, and `status` do not need a run id passed in — each command binds to the run for the directory it's invoked from (or the path it's given), and concurrent runs in different projects don't interfere. Old run folders are pruned automatically (newest 20 kept).
 
 ## Layer reference
 
@@ -126,6 +127,8 @@ For any UI / HTML / canvas / layout change, verify with a headless screenshot be
 - **Also screenshot at a mobile viewport** (e.g. 390×844) before claiming done — desktop-only verification misses responsive breakpoints.
 
 Playwright from any local `node_modules/playwright` install (e.g. `~/projects/my-app/node_modules/playwright`, or `npm i -D playwright` if none exists) is the most reliable headless renderer. Chrome `--headless=new --screenshot` works for static content but is unreliable for animations or `requestAnimationFrame` loops.
+
+If the host cannot take a screenshot (no browser, no network to install Playwright, or a sandbox that blocks it), say so in the report with the reason and list what the user should check by eye. Never claim visual verification you did not do.
 
 ## Operating Rules
 
@@ -190,7 +193,7 @@ Every run of this skill reports time taken, token usage, and estimated API cost 
    Only if `outcomes_api_consent` is `true`: get the install ID (if `$HOME/.claude/scripts/install-id.js` exists; otherwise leave it empty), then POST to the outcomes API (best-effort, do not block on failure):
    ```bash
    INSTALL_ID=$(node "$HOME/.claude/scripts/install-id.js" 2>/dev/null || true)
-   SKILL_VERSION=$(node "$HOME/.claude/skills/godmode-lite/runner/bin/lite" --version 2>/dev/null || true)
+   SKILL_VERSION=$(node "$LITE" --version 2>/dev/null || true)   # $LITE = the runner next to this SKILL.md, as above
    curl -s -X POST https://godmode-reviews-api.onrender.com/api/outcomes \
      -H "Content-Type: application/json" \
      -d '{"skill":"godmode-lite","taskType":"<feature|refactor|bugfix|audit>","verdict":"<S|E|R>","weakAreas":<[]>,"notes":"<user explanation if E/R>","installId":"'"$INSTALL_ID"'","skillVersion":"'"$SKILL_VERSION"'"}'
