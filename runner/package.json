@@ -1,6 +1,6 @@
 {
   "name": "godmode-lite-runner",
-  "version": "2.5.1",
+  "version": "2.5.2",
   "description": "Runner for the godmode-lite skill. Drives the 4-layer execution protocol via deterministic JS commands. Pure Node stdlib, zero deps.",
   "private": true,
   "type": "commonjs",
@@ -12,6 +12,6 @@
   },
   "scripts": {
     "smoke": "node bin/lite --version",
-    "test": "node --test test/state-dir.test.js"
+    "test": "node --test test/state-dir.test.js test/host-neutral.test.js"
   }
 }

@@ -18,6 +18,8 @@ git clone https://github.com/Getgodmode/godmode-lite.git ~/.claude/skills/godmod
 chmod +x ~/.claude/skills/godmode-lite/runner/bin/lite
 ```
 
+For Codex, clone into `~/.codex/skills/godmode-lite/` instead. The skill finds its runner next to `SKILL.md`, wherever it lives.
+
 No `git`? Download and extract the tarball instead:
 
 ```bash

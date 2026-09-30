@@ -2,6 +2,21 @@
 
 All notable changes to Godmode Lite are documented here.
 
+## 2.5.2 - 2026-09-30
+
+- SKILL.md: the outcome step read the version from a hardcoded
+  `~/.claude/skills/godmode-lite` path, so it sent an empty version from any
+  other install location (Codex, Cursor). It now uses the runner next to
+  `SKILL.md`, like every other step.
+- SKILL.md: the Hosts section now says how to run the bash snippets in
+  PowerShell, and visual verification says what to report when the host
+  cannot take a screenshot instead of leaving the rule unmeetable.
+- SKILL.md: the state-file note now lists the `<project>/.evo/godmode-lite`
+  fallback the runner already uses.
+- `discover` with no matches no longer points only at Claude Code's Glob tool;
+  it also names `rg --files` / `git ls-files`.
+- README: Codex install location.
+
 ## 2.5.1 - 2026-09-29
 
 - Fixed the runner failing to start when the host or OS blocks writes inside
